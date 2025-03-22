@@ -1,9 +1,9 @@
 import api from './api';
 
-// Register user
+// ✅ Register user
 export const register = async (userData) => {
   try {
-    const response = await api.post('/auth/register', {
+    const response = await api.post('/api/auth/register', {
       name: userData.name,
       email: userData.email,
       password: userData.password,
@@ -16,13 +16,14 @@ export const register = async (userData) => {
   }
 };
 
-// Login user
+// ✅ Login user
 export const login = async (email, password) => {
   try {
-    const response = await api.post('/auth/login', { email, password });
+    const response = await api.post('/api/auth/login', { email, password });
     if (response.data.token) {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      api.defaults.headers.Authorization = `Bearer ${response.data.token}`; // ✅ Set token in API headers
     }
     return response.data;
   } catch (error) {
@@ -31,16 +32,17 @@ export const login = async (email, password) => {
   }
 };
 
-// Logout user
+// ✅ Logout user
 export const logout = () => {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  delete api.defaults.headers.Authorization;
 };
 
-// Get current user
+// ✅ Get current user
 export const getCurrentUser = async () => {
   try {
-    const response = await api.get('/auth/me');
+    const response = await api.get('/api/auth/me'); // ✅ Requires new backend route
     return response.data;
   } catch (error) {
     console.error("❌ Fetching Current User Error:", error.response?.data || error.message);
@@ -48,7 +50,7 @@ export const getCurrentUser = async () => {
   }
 };
 
-// Check if user is authenticated
+// ✅ Check if user is authenticated
 export const isAuthenticated = () => {
-  return localStorage.getItem('token') !== null;
+  return !!localStorage.getItem('token');
 };
