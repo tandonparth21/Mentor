@@ -1,142 +1,220 @@
-import React from 'react';
-import {
-  Container, Typography, Box, Paper, Avatar, Divider,
-  List, ListItem, ListItemText, Chip, Button, Grid,
-  Tab, Tabs
-} from '@mui/material';
-import { useTheme } from '@mui/material/styles';
+import React, { useState, useEffect } from 'react';
+import { Container, Paper, Typography, Box, Avatar, Button, TextField, Grid, Tabs, Tab, CircularProgress } from '@mui/material';
+import { useAuth } from '../context/AuthContext';
+import { updateUserProfile } from '../services/userService';
+import { getUserSessions } from '../services/sessionService';
+import { getConversations } from '../services/messageService';
 
 const ProfilePage = () => {
-  const theme = useTheme();
-  const [tabValue, setTabValue] = React.useState(0);
+  const { currentUser, logout } = useAuth();
+  const [activeTab, setActiveTab] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: '',
+    email: '',
+    bio: '',
+  });
+  const [sessions, setSessions] = useState([]);
+  const [conversations, setConversations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock user data
-  const user = {
-    name: 'Aekam Singh Sidhu',
-    title: 'Frontend Developer',
-    company: 'PEC Solutions Inc.',
-    location: 'Chandigarh, IN',
-    bio: 'Motivated college undergraduate with atrong aspirations in Data Analytics and Data Structures and Algorithms.',
-    skills: ['JavaScript', 'React', 'CSS', 'HTML', 'Git'],
-    interests: ['System Architecture', 'Performance Optimization', 'UI/UX Design'],
-    email: 'Aekam@example.com',
-    avatar: 'https://source.unsplash.com/random/300x300/?portrait'
+  useEffect(() => {
+    if (currentUser) {
+      setProfileData({
+        name: currentUser.name || '',
+        email: currentUser.email || '',
+        bio: currentUser.bio || '',
+      });
+
+      fetchUserData();
+    }
+  }, [currentUser]);
+
+  const fetchUserData = async () => {
+    setLoading(true);
+    try {
+      console.log("Fetching user sessions...");
+      const sessionsResponse = await getUserSessions(currentUser?._id);
+      console.log("Sessions response:", sessionsResponse);
+      setSessions(sessionsResponse?.data || []); // Ensure an array
+
+      console.log("Fetching user conversations...");
+      const conversationsResponse = await getConversations(currentUser?._id);
+      console.log("Conversations response:", conversationsResponse);
+      setConversations(conversationsResponse?.data || []); // Ensure an array
+    } catch (err) {
+      setError('Failed to load user data');
+      console.error("Error fetching data:", err);
+      setSessions([]); 
+      setConversations([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
+    setActiveTab(newValue);
   };
+
+  const handleProfileUpdate = async () => {
+    try {
+      await updateUserProfile(profileData);
+      setIsEditing(false);
+    } catch (err) {
+      setError('Failed to update profile');
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setProfileData({
+      ...profileData,
+      [name]: value
+    });
+  };
+
+  if (loading) {
+    return (
+      <Container sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '80vh' }}>
+        <CircularProgress />
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'center', sm: 'flex-start' } }}>
+      <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <Avatar
-            src={user.avatar}
-            alt={user.name}
-            sx={{ 
-              width: 120, 
-              height: 120, 
-              mb: { xs: 2, sm: 0 }, 
-              mr: { sm: 4 } 
-            }}
+            sx={{ width: 100, height: 100, mr: 3 }}
+            src={currentUser?.profilePicture}
           />
+          <Box sx={{ flexGrow: 1 }}>
+            {isEditing ? (
+              <TextField
+                fullWidth
+                margin="normal"
+                name="name"
+                label="Name"
+                value={profileData.name}
+                onChange={handleInputChange}
+              />
+            ) : (
+              <Typography variant="h4">{profileData.name}</Typography>
+            )}
+            <Typography variant="body1" color="text.secondary">
+              {profileData.email}
+            </Typography>
+          </Box>
           <Box>
-            <Typography variant="h4" component="h1" gutterBottom>
-              {user.name}
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-              {user.title} at {user.company}
-            </Typography>
-            <Typography variant="body2" gutterBottom>
-              {user.location}
-            </Typography>
-            <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-              <Button variant="contained" color="primary">
-                Edit Profile
+            {isEditing ? (
+              <Button 
+                variant="contained" 
+                onClick={handleProfileUpdate}
+                sx={{ mr: 1 }}
+              >
+                Save
               </Button>
-              <Button variant="outlined">
-                Settings
+            ) : (
+              <Button 
+                variant="outlined" 
+                onClick={() => setIsEditing(true)}
+                sx={{ mr: 1 }}
+              >
+                Edit
               </Button>
-            </Box>
+            )}
+            <Button variant="outlined" color="error" onClick={logout}>
+              Logout
+            </Button>
           </Box>
         </Box>
-      </Paper>
 
-      <Box sx={{ width: '100%' }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={tabValue} onChange={handleTabChange} aria-label="profile tabs">
-            <Tab label="About" />
-            <Tab label="Skills & Interests" />
-            <Tab label="Mentorship" />
+        {isEditing && (
+          <TextField
+            fullWidth
+            margin="normal"
+            name="bio"
+            label="Bio"
+            multiline
+            rows={4}
+            value={profileData.bio}
+            onChange={handleInputChange}
+          />
+        )}
+
+        {!isEditing && profileData.bio && (
+          <Typography variant="body1" paragraph>
+            {profileData.bio}
+          </Typography>
+        )}
+
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mt: 4 }}>
+          <Tabs value={activeTab} onChange={handleTabChange}>
+            <Tab label="Sessions" />
+            <Tab label="Messages" />
+            {currentUser?.isMentor && <Tab label="Mentor Profile" />}
           </Tabs>
         </Box>
 
-        {tabValue === 0 && (
-          <Box sx={{ py: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              About Me
-            </Typography>
-            <Typography variant="body1" paragraph>
-              {user.bio}
-            </Typography>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="h6" gutterBottom>
-              Contact Information
-            </Typography>
-            <Typography variant="body1">
-              Email: {user.email}
-            </Typography>
+        {/* Sessions Tab */}
+        {activeTab === 0 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>Your Sessions</Typography>
+            {(sessions || []).length === 0 ? (
+              <Typography>No sessions found.</Typography>
+            ) : (
+              <Grid container spacing={2}>
+                {(sessions || []).map((session) => (
+                  <Grid item xs={12} key={session._id}>
+                    <Paper sx={{ p: 2 }}>
+                      <Typography variant="h6">{session.title}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {new Date(session.date).toLocaleString()}
+                      </Typography>
+                      <Typography variant="body2">Status: {session.status}</Typography>
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
           </Box>
         )}
 
-        {tabValue === 1 && (
-          <Box sx={{ py: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Skills
-            </Typography>
-            <Box sx={{ mb: 3 }}>
-              {user.skills.map((skill, index) => (
-                <Chip 
-                  key={index} 
-                  label={skill} 
-                  sx={{ mr: 1, mb: 1 }} 
-                />
-              ))}
-            </Box>
-            <Typography variant="h6" gutterBottom>
-              Learning Interests
-            </Typography>
-            <Box>
-              {user.interests.map((interest, index) => (
-                <Chip 
-                  key={index} 
-                  label={interest}
-                  variant="outlined" 
-                  sx={{ mr: 1, mb: 1 }} 
-                />
-              ))}
-            </Box>
+        {/* Messages Tab */}
+        {activeTab === 1 && (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>Your Conversations</Typography>
+            {(conversations || []).length === 0 ? (
+              <Typography>No conversations found.</Typography>
+            ) : (
+              <Grid container spacing={2}>
+                {(conversations || []).map((conversation) => {
+                  const otherParticipant = conversation.participants?.[0] || {};
+                  return (
+                    <Grid item xs={12} key={conversation._id}>
+                      <Paper sx={{ p: 2, display: 'flex', alignItems: 'center' }}>
+                        <Avatar src={otherParticipant?.profilePicture} sx={{ mr: 2 }} />
+                        <Box>
+                          <Typography variant="subtitle1">
+                            {otherParticipant?.name || "Unknown"}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {conversation.lastMessage?.text || "No messages yet"}
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  );
+                })}
+              </Grid>
+            )}
           </Box>
         )}
-
-        {tabValue === 2 && (
-          <Box sx={{ py: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              My Mentorships
-            </Typography>
-            <Typography variant="body1" paragraph>
-              You don't have any active mentorships yet.
-            </Typography>
-            <Button variant="contained" color="primary">
-              Find a Mentor
-            </Button>
-          </Box>
-        )}
-      </Box>
+      </Paper>
     </Container>
   );
 };
 
 export default ProfilePage;
-

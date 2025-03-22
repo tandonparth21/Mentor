@@ -9,17 +9,16 @@ import ProfilePage from "./pages/profilepage.jsx";
 import RegistrationPage from "./pages/registrationpage.jsx";
 import LoginPage from "./pages/loginpage.jsx";
 import Footer from "./components/footer.jsx";
+import { AuthProvider } from "./context/AuthContext"; // Import AuthProvider
 import "./App.css";
 
 function App() {
   const [darkMode, setDarkMode] = useState(true); // Default to dark mode
 
-  // Toggle Light/Dark Mode
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
   };
 
-  // Dynamic Theme
   const theme = createTheme({
     palette: {
       mode: darkMode ? "dark" : "light",
@@ -41,22 +40,24 @@ function App() {
   });
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Router>
-        <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
-        <main className="main-content" style={{ width: "100vw", overflowX: "hidden" }}>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/find-mentor" element={<MentorFinderPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/register" element={<RegistrationPage />} />
-            <Route path="/login" element={<LoginPage />} />
-          </Routes>
-        </main>
-        <Footer />
-      </Router>
-    </ThemeProvider>
+    <AuthProvider> {/* Wrap everything inside AuthProvider */}
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Router>
+          <Navbar darkMode={darkMode} toggleDarkMode={toggleDarkMode} />
+          <main className="main-content" style={{ width: "100vw", overflowX: "hidden" }}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/find-mentor" element={<MentorFinderPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/register" element={<RegistrationPage />} />
+              <Route path="/login" element={<LoginPage />} />
+            </Routes>
+          </main>
+          <Footer />
+        </Router>
+      </ThemeProvider>
+    </AuthProvider>
   );
 }
 

@@ -1,40 +1,79 @@
+// src/components/navbar.jsx
+
 import React from "react";
-import { Link } from "react-router-dom";
-import { AppBar, Toolbar, Typography, Button, IconButton, Box } from "@mui/material";
-import LightModeIcon from "@mui/icons-material/LightMode";
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  IconButton,
+  Box,
+  Switch,
+  Badge,
+} from "@mui/material";
+import { Link, useNavigate } from "react-router-dom";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
-import MenuIcon from "@mui/icons-material/Menu";
+import LightModeIcon from "@mui/icons-material/LightMode";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import { useAuth } from "../context/AuthContext";
 
 const Navbar = ({ darkMode, toggleDarkMode }) => {
+  const { currentUser, isAuthenticated, logout } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <AppBar position="static">
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-        {/* Logo */}
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Mentor Connect
+      <Toolbar>
+        <Typography
+          variant="h6"
+          component={Link}
+          to="/"
+          sx={{ flexGrow: 1, textDecoration: "none", color: "inherit" }}
+        >
+          MentorConnect
         </Typography>
 
-        {/* Navigation Links */}
-        <Box>
-          <Button color="inherit" component={Link} to="/">
-            Home
-          </Button>
+        <Box sx={{ display: "flex", alignItems: "center" }}>
           <Button color="inherit" component={Link} to="/find-mentor">
-            Find Mentor
-          </Button>
-          <Button color="inherit" component={Link} to="/profile">
-            Profile
+            Find Mentors
           </Button>
 
-          {/* Light/Dark Mode Toggle */}
-          <IconButton onClick={toggleDarkMode} color="inherit" sx={{ mx: 1 }}>
-            {darkMode ? <LightModeIcon /> : <DarkModeIcon />}
-          </IconButton>
+          {isAuthenticated ? (
+            <>
+              <IconButton color="inherit">
+                <Badge badgeContent={0} color="error">
+                  <NotificationsIcon />
+                </Badge>
+              </IconButton>
+              <Button color="inherit" component={Link} to="/profile">
+                {currentUser?.name || 'Profile'}
+              </Button>
+              <Button color="inherit" onClick={() => {
+                logout();
+                navigate('/');
+              }}>
+                Logout
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button color="inherit" component={Link} to="/login">
+                Login
+              </Button>
+              <Button color="inherit" component={Link} to="/register">
+                Register
+              </Button>
+            </>
+          )}
 
-          {/* Login Button */}
-          <Button color="inherit" component={Link} to="/login" variant="outlined">
-            Login
-          </Button>
+          <Box sx={{ display: "flex", alignItems: "center", ml: 1 }}>
+            {darkMode ? <DarkModeIcon /> : <LightModeIcon />}
+            <Switch
+              checked={darkMode}
+              onChange={toggleDarkMode}
+              color="default"
+            />
+          </Box>
         </Box>
       </Toolbar>
     </AppBar>
